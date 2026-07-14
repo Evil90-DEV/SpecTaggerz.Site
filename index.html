@@ -3,11 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Spec Taggerz with Firebase</title>
-<!-- Firebase SDKs -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<title>Spec Taggerz</title>
 <link rel="stylesheet" href="Site.css" />
 </head>
 <body>
@@ -16,10 +12,9 @@
 <p class="description">Run, jump, and have fun in Spec Taggerz!</p>
 
 <div class="images">
-  <!-- Replace these src with your actual image URLs -->
-  <img src="Screenshot 2026-01-14 172034_2560x1440.png" alt="Game Image 1" />
-  <img src="Screenshot 2026-01-14 172024_2560x1440.png" alt="Game Image 2" />
-  <img src="Screenshot 2026-01-14 172010_2560x1440.png" alt="Game Image 3" />
+  <img src="https://via.placeholder.com/300x200?text=Game+Image+1" alt="Game Image 1" />
+  <img src="https://via.placeholder.com/300x200?text=Game+Image+2" alt="Game Image 2" />
+  <img src="https://via.placeholder.com/300x200?text=Game+Image+3" alt="Game Image 3" />
 </div>
 
 <div class="buttons">
@@ -27,9 +22,16 @@
 </div>
 
 <div id="auth-section">
-  <h2>Sign In</h2>
-  <button id="signInBtn">Sign in Anonymously</button>
-  <p id="authStatus"></p>
+  <h2>Set Your Username</h2>
+  <p>Select from allowed usernames:</p>
+  <select id="usernameSelect">
+    <option value="">--Choose a username--</option>
+    <option value="Alice">Alice</option>
+    <option value="Bob">Bob</option>
+    <option value="Charlie">Charlie</option>
+  </select>
+  <button id="saveUsernameBtn">Save Username</button>
+  <p id="statusMsg"></p>
 </div>
 
 <div id="comments-section" style="display:none;">
@@ -43,81 +45,77 @@
 </div>
 
 <script>
-  // Your Firebase configuration (replace with your own)
-const firebaseConfig = {
-  apiKey: "AIzaSyAHhMbF6CuI22_4FbTk0of4TNxMtgmcqDg",
-  authDomain: "spec-taggerz.firebaseapp.com",
-  databaseURL: "https://spec-taggerz-default-rtdb.firebaseio.com", // Replace with your actual database URL
-  projectId: "spec-taggerz",
-  storageBucket: "spec-taggerz.appspot.com",
-  messagingSenderId: "927743332289",
-  appId: "1:927743332289:web:0bb2a09f224f4999f12940",
-  measurementId: "G-N947ZTPRBZ"
+// List of allowed usernames
+const allowedUsernames = ["Alice", "Bob", "Charlie"];
+
+const usernameSelect = document.getElementById('usernameSelect');
+const saveBtn = document.getElementById('saveUsernameBtn');
+const statusMsg = document.getElementById('statusMsg');
+const usernameDisplay = document.getElementById('usernameDisplay');
+const commentsSection = document.getElementById('comments-section');
+
+let username = localStorage.getItem('username');
+
+if (username && allowedUsernames.includes(username)) {
+  showComments();
+} else {
+  // Not set or invalid, show auth section
+  document.getElementById('auth-section').style.display = 'block';
+  commentsSection.style.display = 'none';
+}
+
+// When user clicks save, verify selection
+saveBtn.onclick = () => {
+  const selectedName = usernameSelect.value;
+  if (!selectedName) {
+    alert("Please select a username from the list.");
+    return;
+  }
+  // Check if selected username is allowed
+  if (!allowedUsernames.includes(selectedName)) {
+    alert("This username is not allowed. Please select a valid username from the list.");
+    return;
+  }
+  // Save username
+  username = selectedName;
+  localStorage.setItem('username', username);
+  showComments();
 };
 
-  // Initialize Firebase
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.firestore();
+// Show comments section
+function showComments() {
+  document.getElementById('auth-section').style.display = 'none';
+  commentsSection.style.display = 'block';
+  document.getElementById('usernameDisplay').textContent = username;
+  loadComments();
+}
 
-  const signInBtn = document.getElementById('signInBtn');
-  const authStatus = document.getElementById('authStatus');
-  const usernameDisplay = document.getElementById('usernameDisplay');
-  const commentsSection = document.getElementById('comments-section');
+// Load comments from localStorage (for demo)
+function loadComments() {
+  const comments = JSON.parse(localStorage.getItem('comments')) || [];
+  const commentsList = document.getElementById('commentsList');
+  commentsList.innerHTML = '';
+  comments.forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'comment';
+    div.textContent = c;
+    commentsList.appendChild(div);
+  });
+}
 
-  let currentUser = null;
+// Add new comment
+document.getElementById('commentForm').onsubmit = (e) => {
+  e.preventDefault();
+  const commentText = document.getElementById('commentInput').value.trim();
+  if (!commentText) return;
+  let comments = JSON.parse(localStorage.getItem('comments')) || [];
+  comments.push(`${username}: ${commentText}`);
+  localStorage.setItem('comments', JSON.stringify(comments));
+  loadComments();
+  document.getElementById('commentInput').value = '';
+};
 
-  // Sign in anonymously
-  signInBtn.onclick = () => {
-    auth.signInAnonymously()
-      .then(() => {
-        currentUser = auth.currentUser;
-        showComments();
-      })
-      .catch(error => {
-        authStatus.textContent = "Error signing in: " + error.message;
-      });
-  };
-
-  function showComments() {
-    document.getElementById('auth-section').style.display = 'none';
-    commentsSection.style.display = 'block';
-    // Display user ID as username (or implement a username system)
-    usernameDisplay.textContent = currentUser.uid;
-    loadComments();
-  }
-
-  // Load comments from Firestore
-  function loadComments() {
-    const commentsRef = db.collection('comments').orderBy('timestamp', 'asc');
-    commentsRef.onSnapshot(snapshot => {
-      const commentsList = document.getElementById('commentsList');
-      commentsList.innerHTML = '';
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        const div = document.createElement('div');
-        div.className = 'comment';
-        div.textContent = data.username + ": " + data.text;
-        commentsList.appendChild(div);
-      });
-    });
-  }
-
-  // Post comment
-  document.getElementById('commentForm').onsubmit = (e) => {
-    e.preventDefault();
-    const commentText = document.getElementById('commentInput').value.trim();
-    if (!commentText || !currentUser) return;
-
-    db.collection('comments').add({
-      username: currentUser.uid,
-      text: commentText,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    document.getElementById('commentInput').value = '';
-  };
-
-  // Download button
+// Download button
 document.getElementById('downloadBtn').onclick = () => {
   window.location.href = "https://www.meta.com/experiences/spec-taggerz-v2/1173072012561564/";
 };
