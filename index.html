@@ -23,11 +23,12 @@
   <button id="downloadBtn">Download Game</button>
 </div>
 
-<!-- Username setup -->
+<!-- Username setup and change button -->
 <div id="auth-section">
   <h2>Set Your Unique Username</h2>
   <input type="text" id="usernameInput" placeholder="Enter username" />
   <button id="saveUsernameBtn">Save Username</button>
+  <button id="changeUsernameBtn" style="margin-left:10px;">Change Username</button>
   <p id="statusMsg"></p>
 </div>
 
@@ -57,17 +58,16 @@ const firebaseConfig = {
 };
 
   import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-  import { getDatabase, ref, push, onValue, get, child } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+  import { getDatabase, ref, push, onValue, get } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
 
-  // Initialize Firebase
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
 
-  // DOM Elements
   const statusMsg = document.getElementById('statusMsg');
   const usernameDisplay = document.getElementById('usernameDisplay');
   const usernameInput = document.getElementById('usernameInput');
   const saveUsernameBtn = document.getElementById('saveUsernameBtn');
+  const changeUsernameBtn = document.getElementById('changeUsernameBtn');
   const commentsSection = document.getElementById('comments-section');
   const authSection = document.getElementById('auth-section');
   const commentsList = document.getElementById('commentsList');
@@ -103,20 +103,26 @@ const firebaseConfig = {
       alert("Please enter a username");
       return;
     }
-
+    // Check if username is taken
     const usernameRef = ref(db, `usernames/${newUsername}`);
     const snapshot = await get(usernameRef);
     if (snapshot.exists()) {
       alert("This username is already taken. Please choose another one.");
       return;
     }
-
     // Save username as taken
-    await set(usernameRef, { takenBy: "someUserId" }); // optional: store who took it
-    // Save username locally
+    await set(usernameRef, { takenBy: "someUserId" });
+    // Save locally
     username = newUsername;
     localStorage.setItem('username', username);
     showComments();
+  };
+
+  // Change username
+  changeUsernameBtn.onclick = () => {
+    // Show the input for new username
+    showUsernameSetup();
+    document.getElementById('statusMsg').textContent = "Enter a new username.";
   };
 
   // Load comments
