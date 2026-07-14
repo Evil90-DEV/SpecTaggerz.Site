@@ -9,14 +9,6 @@
 </head>
 <body>
 
-  <!-- Your existing content above -->
-<!-- ... -->
-
-<!-- Bottom footer or control area -->
-<div style="text-align: center; margin-top: 20px; font-style: italic; color: white;">
-  Made by evil90
-</div>
-
 <h1>Spec Taggerz</h1>
 <p class="description">Run, jump, and have fun in Spec Taggerz!</p>
 
@@ -28,19 +20,18 @@
 </div>
 
 <div class="buttons">
-  <!-- Download Button -->
   <button id="downloadBtn">Download Game</button>
 </div>
 
-<!-- Comment and User Name Setup -->
+<!-- Username setup -->
 <div id="auth-section">
-  <h2>Set Your Username</h2>
+  <h2>Set Your Unique Username</h2>
   <input type="text" id="usernameInput" placeholder="Enter username" />
   <button id="saveUsernameBtn">Save Username</button>
   <p id="statusMsg"></p>
 </div>
 
-<!-- Comments Display -->
+<!-- Comments display -->
 <div id="comments-section" style="display:none;">
   <h2>Comments</h2>
   <p>Logged in as: <span id="usernameDisplay"></span></p>
@@ -53,11 +44,7 @@
 
 <!-- Firebase SDKs -->
 <script type="module">
-  // Import Firebase modules
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-  import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
-
-  // Your Firebase configuration (Replace with your actual config)
+  // Firebase configuration (replace with your actual config)
 const firebaseConfig = {
   apiKey: "AIzaSyAHhMbF6CuI22_4FbTk0of4TNxMtgmcqDg",
   authDomain: "spec-taggerz.firebaseapp.com",
@@ -68,6 +55,9 @@ const firebaseConfig = {
   appId: "1:927743332289:web:0bb2a09f224f4999f12940",
   measurementId: "G-N947ZTPRBZ"
 };
+
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+  import { getDatabase, ref, push, onValue, get, child } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
 
   // Initialize Firebase
   const app = initializeApp(firebaseConfig);
@@ -96,7 +86,7 @@ const firebaseConfig = {
   function showUsernameSetup() {
     authSection.style.display = 'block';
     commentsSection.style.display = 'none';
-    statusMsg.textContent = "Please set your username.";
+    statusMsg.textContent = "Please set your unique username.";
   }
 
   function showComments() {
@@ -106,19 +96,30 @@ const firebaseConfig = {
     loadComments();
   }
 
-  // Save username
-  saveUsernameBtn.onclick = () => {
+  // Save username with uniqueness check
+  saveUsernameBtn.onclick = async () => {
     const newUsername = usernameInput.value.trim();
     if (!newUsername) {
-      alert("Enter a username");
+      alert("Please enter a username");
       return;
     }
+
+    const usernameRef = ref(db, `usernames/${newUsername}`);
+    const snapshot = await get(usernameRef);
+    if (snapshot.exists()) {
+      alert("This username is already taken. Please choose another one.");
+      return;
+    }
+
+    // Save username as taken
+    await set(usernameRef, { takenBy: "someUserId" }); // optional: store who took it
+    // Save username locally
     username = newUsername;
     localStorage.setItem('username', username);
     showComments();
   };
 
-  // Load comments from Firebase
+  // Load comments
   function loadComments() {
     const commentsRef = ref(db, 'comments');
     onValue(commentsRef, snapshot => {
@@ -133,7 +134,7 @@ const firebaseConfig = {
     });
   }
 
-  // Post a comment
+  // Post comment
   document.getElementById('commentForm').onsubmit = e => {
     e.preventDefault();
     if (!username) {
@@ -142,16 +143,20 @@ const firebaseConfig = {
     }
     const text = commentInput.value.trim();
     if (!text) return;
-    // Save comment with username
     push(ref(db, 'comments'), { text: text, username: username });
     commentInput.value = '';
   };
 
-  // Download button functionality
+  // Download button
   document.getElementById('downloadBtn').onclick = () => {
     window.location.href = "https://www.meta.com/experiences/spec-taggerz-v2/1173072012561564/";
   };
 </script>
+
+<!-- Footer -->
+<div style="text-align: center; margin-top: 20px; font-style: italic; color: white;">
+  Made by evil90
+</div>
 
 </body>
 </html>
