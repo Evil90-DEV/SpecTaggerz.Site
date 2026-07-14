@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Spec Taggerz</title>
-<!-- Link to your CSS stylesheet -->
+<title>Spec Taggerz - Login System</title>
 <link rel="stylesheet" href="Site.css" />
 </head>
 <body>
@@ -22,18 +21,23 @@
   <button id="downloadBtn">Download Game</button>
 </div>
 
-<!-- Comment and User Name Setup -->
+<!-- Login/Register Section -->
 <div id="auth-section">
-  <h2>Set Your Username</h2>
-  <input type="text" id="usernameInput" placeholder="Enter username" />
-  <button id="saveUsernameBtn">Save Username</button>
-  <p id="statusMsg"></p>
+  <h2>Login or Register</h2>
+  <input type="text" id="auth-username" placeholder="Username" />
+  <input type="password" id="auth-password" placeholder="Password" />
+  <button id="loginBtn">Login</button>
+  <button id="registerBtn">Register</button>
+  <p id="auth-status"></p>
 </div>
 
-<!-- Comments Display -->
-<div id="comments-section" style="display:none;">
-  <h2>Comments</h2>
-  <p>Logged in as: <span id="usernameDisplay"></span></p>
+<!-- Main App after login -->
+<div id="app-section" style="display:none;">
+  <h2>Welcome, <span id="user-name-display"></span></h2>
+  <button id="logoutBtn">Logout</button>
+  
+  <!-- Comment system -->
+  <h3>Comments</h3>
   <form id="commentForm">
     <input type="text" id="commentInput" placeholder="Write a comment..." required />
     <button type="submit">Post</button>
@@ -43,7 +47,7 @@
 
 <!-- Firebase SDKs -->
 <script type="module">
-  // Firebase configuration (replace with your actual config)
+  // Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyAHhMbF6CuI22_4FbTk0of4TNxMtgmcqDg",
   authDomain: "spec-taggerz.firebaseapp.com",
@@ -56,63 +60,97 @@ const firebaseConfig = {
 };
 
   import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-  import { getDatabase, ref, push, onValue, get } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+  import { getDatabase, ref, push, onValue, get, set } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
 
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
 
-  const statusMsg = document.getElementById('statusMsg');
-  const usernameDisplay = document.getElementById('usernameDisplay');
-  const usernameInput = document.getElementById('usernameInput');
-  const saveUsernameBtn = document.getElementById('saveUsernameBtn');
-  const commentsSection = document.getElementById('comments-section');
+  // Elements
   const authSection = document.getElementById('auth-section');
+  const appSection = document.getElementById('app-section');
+  const authStatus = document.getElementById('auth-status');
+  const usernameInput = document.getElementById('auth-username');
+  const passwordInput = document.getElementById('auth-password');
+  const loginBtn = document.getElementById('loginBtn');
+  const registerBtn = document.getElementById('registerBtn');
+  const userNameDisplay = document.getElementById('user-name-display');
+
   const commentsList = document.getElementById('commentsList');
   const commentForm = document.getElementById('commentForm');
   const commentInput = document.getElementById('commentInput');
 
-  let username = localStorage.getItem('username') || '';
+  const logoutBtn = document.getElementById('logoutBtn');
 
-  // Check if username exists
-  if (username) {
-    showComments();
-  } else {
-    showUsernameSetup();
+  let currentUser = null;
+
+  // Load user session
+  const savedUser = localStorage.getItem('user');
+  if (savedUser) {
+    currentUser = JSON.parse(savedUser);
+    showApp();
   }
 
-  function showUsernameSetup() {
-    authSection.style.display = 'block';
-    commentsSection.style.display = 'none';
-    statusMsg.textContent = "Please set your username.";
-  }
+  // Login
+  document.getElementById('loginBtn').onclick = async () => {
+    const username = usernameInput.value.trim();
+    const password = passwordInput.value.trim();
+    if (!username || !password) {
+      authStatus.textContent = "Enter username and password.";
+      return;
+    }
+    const userRef = ref(db, `users/${username}`);
+    const snapshot = await get(userRef);
+    if (snapshot.exists()) {
+      const userData = snapshot.val();
+      if (userData.password === password) {
+        // Successful login
+        currentUser = { username, password };
+        localStorage.setItem('user', JSON.stringify(currentUser));
+        showApp();
+      } else {
+        authStatus.textContent = "Incorrect password.";
+      }
+    } else {
+      authStatus.textContent = "User does not exist.";
+    }
+  };
 
-  function showComments() {
+  // Register
+  document.getElementById('registerBtn').onclick = async () => {
+    const username = usernameInput.value.trim();
+    const password = passwordInput.value.trim();
+    if (!username || !password) {
+      authStatus.textContent = "Enter username and password.";
+      return;
+    }
+    const userRef = ref(db, `users/${username}`);
+    const snapshot = await get(userRef);
+    if (snapshot.exists()) {
+      authStatus.textContent = "Username already exists.";
+    } else {
+      // Save new user
+      await set(userRef, { password });
+      // Log in user after registration
+      currentUser = { username, password };
+      localStorage.setItem('user', JSON.stringify(currentUser));
+      showApp();
+    }
+  };
+
+  // Show app after login
+  function showApp() {
     authSection.style.display = 'none';
-    commentsSection.style.display = 'block';
-    usernameDisplay.textContent = username;
+    document.getElementById('app-section').style.display = 'block';
+    document.getElementById('user-name-display').textContent = currentUser.username;
     loadComments();
   }
 
-  // Save username with Firebase check
-  saveUsernameBtn.onclick = async () => {
-    const newUsername = usernameInput.value.trim();
-    if (!newUsername) {
-      alert("Enter a username");
-      return;
-    }
-    // Check if username is already taken
-    const usernameRef = ref(db, `usernames/${newUsername}`);
-    const snapshot = await get(usernameRef);
-    if (snapshot.exists()) {
-      alert("This username is already taken. Please choose another one.");
-      return;
-    }
-    // Save username as taken
-    await set(usernameRef, { takenBy: "someUserId" });
-    // Save locally
-    username = newUsername;
-    localStorage.setItem('username', username);
-    showComments();
+  // Logout
+  document.getElementById('logoutBtn').onclick = () => {
+    localStorage.removeItem('user');
+    currentUser = null;
+    authSection.style.display = 'block';
+    document.getElementById('app-section').style.display = 'none';
   };
 
   // Load comments
@@ -131,15 +169,15 @@ const firebaseConfig = {
   }
 
   // Post comment
-  document.getElementById('commentForm').onsubmit = e => {
+  commentForm.onsubmit = e => {
     e.preventDefault();
-    if (!username) {
-      alert("Please set your username first.");
+    if (!currentUser) {
+      alert("Login first.");
       return;
     }
     const text = commentInput.value.trim();
     if (!text) return;
-    push(ref(db, 'comments'), { text: text, username: username });
+    push(ref(db, 'comments'), { text, username: currentUser.username });
     commentInput.value = '';
   };
 
