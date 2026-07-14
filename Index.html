@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Spec Taggerz - Game Showcase & Comments</title>
+<style>
+/* Embedded CSS Styles */
+
+body {
+  font-family: Arial, sans-serif;
+  background-color: #222;
+  color: #fff;
+  margin: 0;
+  padding: 20px;
+}
+
+h1 {
+  text-align: center;
+  font-size: 2.5em;
+  margin-bottom: 10px;
+}
+
+p.description {
+  text-align: center;
+  font-size: 1.2em;
+  margin-bottom: 30px;
+}
+
+.images {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.images img {
+  max-width: 300px;
+  border: 2px solid #fff;
+  border-radius: 10px;
+}
+
+/* Buttons styling */
+.buttons {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+button {
+  padding: 10px 20px;
+  font-size: 1em;
+  border: none;
+  border-radius: 5px;
+  background: #66a6ff;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+button:hover {
+  background: #558ed8;
+}
+
+/* Comments section styling */
+#auth-section, #comments-section {
+  background: rgba(255,255,255,0.2);
+  border-radius: 10px;
+  padding: 20px;
+  margin-top: 30px;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#auth-section h2, #comments-section h2 {
+  margin-top: 0;
+}
+
+input[type="text"] {
+  padding: 8px;
+  margin-right: 10px;
+  border-radius: 5px;
+  border: none;
+  width: calc(100% - 120px);
+}
+
+form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+#commentsList {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 20px;
+}
+
+.comment {
+  background: rgba(255,255,255,0.2);
+  padding: 8px;
+  margin-bottom: 8px;
+  border-radius: 5px;
+}
+</style>
+</head>
+<body>
+
+<h1>Spec Taggerz</h1>
+<p class="description">Run, jump, and have fun in Spec Taggerz!</p>
+
+<div class="images">
+  <!-- Replace these src with your actual image URLs -->
+   <div class="game-pic"><img src="C:\Users\monte\OneDrive\Pictures\Screenshot 2026-01-14 172034_2560x1440.png" alt="Screenshot 1" /></div>
+  <div class="game-pic"><img src="C:\Users\monte\OneDrive\Pictures\Screenshot 2026-01-14 172024_2560x1440.png" alt="Screenshot 2" /></div>
+  <div class="game-pic"><img src="C:\Users\monte\OneDrive\Pictures\Screenshot 2026-01-14 172010_2560x1440.png" alt="Screenshot 3" /></div>
+</div>
+
+<div class="buttons">
+  <!-- Download Button -->
+  <button id="downloadBtn">Download Game</button>
+</div>
+
+<!-- Comment and User Name Setup -->
+<div id="auth-section">
+  <h2>Set Your Username</h2>
+  <input type="text" id="usernameInput" placeholder="Enter username" />
+  <button id="saveUsernameBtn">Save Username</button>
+  <p id="statusMsg"></p>
+</div>
+
+<!-- Comments Display -->
+<div id="comments-section" style="display:none;">
+  <h2>Comments</h2>
+  <p>Logged in as: <span id="usernameDisplay"></span></p>
+  <form id="commentForm">
+    <input type="text" id="commentInput" placeholder="Write a comment..." required />
+    <button type="submit">Post</button>
+  </form>
+  <div id="commentsList"></div>
+</div>
+
+<!-- Firebase SDKs -->
+<script type="module">
+  // Import Firebase modules
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+  import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+
+  // Your Firebase configuration (Replace with your actual config)
+const firebaseConfig = {
+  apiKey: "AIzaSyAHhMbF6CuI22_4FbTk0of4TNxMtgmcqDg",
+  authDomain: "spec-taggerz.firebaseapp.com",
+  databaseURL: "https://spec-taggerz-default-rtdb.firebaseio.com", // Replace with your actual database URL
+  projectId: "spec-taggerz",
+  storageBucket: "spec-taggerz.appspot.com",
+  messagingSenderId: "927743332289",
+  appId: "1:927743332289:web:0bb2a09f224f4999f12940",
+  measurementId: "G-N947ZTPRBZ"
+};
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // DOM Elements
+  const statusMsg = document.getElementById('statusMsg');
+  const usernameDisplay = document.getElementById('usernameDisplay');
+  const usernameInput = document.getElementById('usernameInput');
+  const saveUsernameBtn = document.getElementById('saveUsernameBtn');
+  const commentsSection = document.getElementById('comments-section');
+  const authSection = document.getElementById('auth-section');
+  const commentsList = document.getElementById('commentsList');
+  const commentForm = document.getElementById('commentForm');
+  const commentInput = document.getElementById('commentInput');
+
+  let username = localStorage.getItem('username') || '';
+
+  // Check if username exists
+  if (username) {
+    showComments();
+  } else {
+    showUsernameSetup();
+  }
+
+  function showUsernameSetup() {
+    authSection.style.display = 'block';
+    commentsSection.style.display = 'none';
+    statusMsg.textContent = "Please set your username.";
+  }
+
+  function showComments() {
+    authSection.style.display = 'none';
+    commentsSection.style.display = 'block';
+    usernameDisplay.textContent = username;
+    loadComments();
+  }
+
+  // Save username
+  saveUsernameBtn.onclick = () => {
+    const newUsername = usernameInput.value.trim();
+    if (!newUsername) {
+      alert("Enter a username");
+      return;
+    }
+    username = newUsername;
+    localStorage.setItem('username', username);
+    showComments();
+  };
+
+  // Load comments from Firebase
+  function loadComments() {
+    const commentsRef = ref(db, 'comments');
+    onValue(commentsRef, snapshot => {
+      commentsList.innerHTML = '';
+      snapshot.forEach(child => {
+        const comment = child.val();
+        const div = document.createElement('div');
+        div.className = 'comment';
+        div.innerHTML = `<strong>${comment.username}:</strong> ${comment.text}`;
+        commentsList.appendChild(div);
+      });
+    });
+  }
+
+  // Post a comment
+  document.getElementById('commentForm').onsubmit = e => {
+    e.preventDefault();
+    if (!username) {
+      alert("Please set your username first.");
+      return;
+    }
+    const text = commentInput.value.trim();
+    if (!text) return;
+    // Save comment with username
+    push(ref(db, 'comments'), { text: text, username: username });
+    commentInput.value = '';
+  };
+
+  // Download button functionality
+  document.getElementById('downloadBtn').onclick = () => {
+    window.location.href = "https://www.meta.com/experiences/spec-taggerz-v2/1173072012561564/";
+  };
+</script>
+
+</body>
+</html>
