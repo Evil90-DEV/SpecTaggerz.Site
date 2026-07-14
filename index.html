@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Spec Taggerz</title>
+<!-- Link to your CSS stylesheet -->
 <link rel="stylesheet" href="Site.css" />
 </head>
 <body>
@@ -12,28 +13,26 @@
 <p class="description">Run, jump, and have fun in Spec Taggerz!</p>
 
 <div class="images">
-  <img src="https://via.placeholder.com/300x200?text=Game+Image+1" alt="Game Image 1" />
-  <img src="https://via.placeholder.com/300x200?text=Game+Image+2" alt="Game Image 2" />
-  <img src="https://via.placeholder.com/300x200?text=Game+Image+3" alt="Game Image 3" />
+  <!-- Replace these src with your actual image URLs -->
+  <img src="Screenshot 2026-01-14 172034_2560x1440.png" alt="Game Image 1" />
+  <img src="Screenshot 2026-01-14 172024_2560x1440.png" alt="Game Image 2" />
+  <img src="Screenshot 2026-01-14 172010_2560x1440.png" alt="Game Image 3" />
 </div>
 
 <div class="buttons">
+  <!-- Download Button -->
   <button id="downloadBtn">Download Game</button>
 </div>
 
+<!-- Comment and User Name Setup -->
 <div id="auth-section">
   <h2>Set Your Username</h2>
-  <p>Select from allowed usernames:</p>
-  <select id="usernameSelect">
-    <option value="">--Choose a username--</option>
-    <option value="Alice">Alice</option>
-    <option value="Bob">Bob</option>
-    <option value="Charlie">Charlie</option>
-  </select>
+  <input type="text" id="usernameInput" placeholder="Enter username" />
   <button id="saveUsernameBtn">Save Username</button>
   <p id="statusMsg"></p>
 </div>
 
+<!-- Comments Display -->
 <div id="comments-section" style="display:none;">
   <h2>Comments</h2>
   <p>Logged in as: <span id="usernameDisplay"></span></p>
@@ -44,81 +43,106 @@
   <div id="commentsList"></div>
 </div>
 
-<script>
-// List of allowed usernames
-const allowedUsernames = ["Alice", "Bob", "Charlie"];
+<!-- Firebase SDKs -->
+<script type="module">
+  // Import Firebase modules
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+  import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
 
-const usernameSelect = document.getElementById('usernameSelect');
-const saveBtn = document.getElementById('saveUsernameBtn');
-const statusMsg = document.getElementById('statusMsg');
-const usernameDisplay = document.getElementById('usernameDisplay');
-const commentsSection = document.getElementById('comments-section');
-
-let username = localStorage.getItem('username');
-
-if (username && allowedUsernames.includes(username)) {
-  showComments();
-} else {
-  // Not set or invalid, show auth section
-  document.getElementById('auth-section').style.display = 'block';
-  commentsSection.style.display = 'none';
-}
-
-// When user clicks save, verify selection
-saveBtn.onclick = () => {
-  const selectedName = usernameSelect.value;
-  if (!selectedName) {
-    alert("Please select a username from the list.");
-    return;
-  }
-  // Check if selected username is allowed
-  if (!allowedUsernames.includes(selectedName)) {
-    alert("This username is not allowed. Please select a valid username from the list.");
-    return;
-  }
-  // Save username
-  username = selectedName;
-  localStorage.setItem('username', username);
-  showComments();
+  // Your Firebase configuration (Replace with your actual config)
+const firebaseConfig = {
+  apiKey: "AIzaSyAHhMbF6CuI22_4FbTk0of4TNxMtgmcqDg",
+  authDomain: "spec-taggerz.firebaseapp.com",
+  databaseURL: "https://spec-taggerz-default-rtdb.firebaseio.com", // Replace with your actual database URL
+  projectId: "spec-taggerz",
+  storageBucket: "spec-taggerz.appspot.com",
+  messagingSenderId: "927743332289",
+  appId: "1:927743332289:web:0bb2a09f224f4999f12940",
+  measurementId: "G-N947ZTPRBZ"
 };
 
-// Show comments section
-function showComments() {
-  document.getElementById('auth-section').style.display = 'none';
-  commentsSection.style.display = 'block';
-  document.getElementById('usernameDisplay').textContent = username;
-  loadComments();
-}
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
 
-// Load comments from localStorage (for demo)
-function loadComments() {
-  const comments = JSON.parse(localStorage.getItem('comments')) || [];
+  // DOM Elements
+  const statusMsg = document.getElementById('statusMsg');
+  const usernameDisplay = document.getElementById('usernameDisplay');
+  const usernameInput = document.getElementById('usernameInput');
+  const saveUsernameBtn = document.getElementById('saveUsernameBtn');
+  const commentsSection = document.getElementById('comments-section');
+  const authSection = document.getElementById('auth-section');
   const commentsList = document.getElementById('commentsList');
-  commentsList.innerHTML = '';
-  comments.forEach(c => {
-    const div = document.createElement('div');
-    div.className = 'comment';
-    div.textContent = c;
-    commentsList.appendChild(div);
-  });
-}
+  const commentForm = document.getElementById('commentForm');
+  const commentInput = document.getElementById('commentInput');
 
-// Add new comment
-document.getElementById('commentForm').onsubmit = (e) => {
-  e.preventDefault();
-  const commentText = document.getElementById('commentInput').value.trim();
-  if (!commentText) return;
-  let comments = JSON.parse(localStorage.getItem('comments')) || [];
-  comments.push(`${username}: ${commentText}`);
-  localStorage.setItem('comments', JSON.stringify(comments));
-  loadComments();
-  document.getElementById('commentInput').value = '';
-};
+  let username = localStorage.getItem('username') || '';
 
-// Download button
-document.getElementById('downloadBtn').onclick = () => {
-  window.location.href = "https://www.meta.com/experiences/spec-taggerz-v2/1173072012561564/";
-};
+  // Check if username exists
+  if (username) {
+    showComments();
+  } else {
+    showUsernameSetup();
+  }
+
+  function showUsernameSetup() {
+    authSection.style.display = 'block';
+    commentsSection.style.display = 'none';
+    statusMsg.textContent = "Please set your username.";
+  }
+
+  function showComments() {
+    authSection.style.display = 'none';
+    commentsSection.style.display = 'block';
+    usernameDisplay.textContent = username;
+    loadComments();
+  }
+
+  // Save username
+  saveUsernameBtn.onclick = () => {
+    const newUsername = usernameInput.value.trim();
+    if (!newUsername) {
+      alert("Enter a username");
+      return;
+    }
+    username = newUsername;
+    localStorage.setItem('username', username);
+    showComments();
+  };
+
+  // Load comments from Firebase
+  function loadComments() {
+    const commentsRef = ref(db, 'comments');
+    onValue(commentsRef, snapshot => {
+      commentsList.innerHTML = '';
+      snapshot.forEach(child => {
+        const comment = child.val();
+        const div = document.createElement('div');
+        div.className = 'comment';
+        div.innerHTML = `<strong>${comment.username}:</strong> ${comment.text}`;
+        commentsList.appendChild(div);
+      });
+    });
+  }
+
+  // Post a comment
+  document.getElementById('commentForm').onsubmit = e => {
+    e.preventDefault();
+    if (!username) {
+      alert("Please set your username first.");
+      return;
+    }
+    const text = commentInput.value.trim();
+    if (!text) return;
+    // Save comment with username
+    push(ref(db, 'comments'), { text: text, username: username });
+    commentInput.value = '';
+  };
+
+  // Download button functionality
+  document.getElementById('downloadBtn').onclick = () => {
+    window.location.href = "https://www.meta.com/experiences/spec-taggerz-v2/1173072012561564/";
+  };
 </script>
 
 </body>
