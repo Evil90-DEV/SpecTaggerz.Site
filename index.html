@@ -13,7 +13,6 @@
 <p class="description">Run, jump, and have fun in Spec Taggerz!</p>
 
 <div class="images">
-  <!-- Replace these src with your actual image URLs -->
   <img src="Screenshot 2026-01-14 172034_2560x1440.png" alt="Game Image 1" />
   <img src="Screenshot 2026-01-14 172024_2560x1440.png" alt="Game Image 2" />
   <img src="Screenshot 2026-01-14 172010_2560x1440.png" alt="Game Image 3" />
@@ -23,16 +22,15 @@
   <button id="downloadBtn">Download Game</button>
 </div>
 
-<!-- Username setup and change button -->
+<!-- Comment and User Name Setup -->
 <div id="auth-section">
-  <h2>Set Your Unique Username</h2>
+  <h2>Set Your Username</h2>
   <input type="text" id="usernameInput" placeholder="Enter username" />
   <button id="saveUsernameBtn">Save Username</button>
-  <button id="changeUsernameBtn" style="margin-left:10px;">Change Username</button>
   <p id="statusMsg"></p>
 </div>
 
-<!-- Comments display -->
+<!-- Comments Display -->
 <div id="comments-section" style="display:none;">
   <h2>Comments</h2>
   <p>Logged in as: <span id="usernameDisplay"></span></p>
@@ -67,7 +65,6 @@ const firebaseConfig = {
   const usernameDisplay = document.getElementById('usernameDisplay');
   const usernameInput = document.getElementById('usernameInput');
   const saveUsernameBtn = document.getElementById('saveUsernameBtn');
-  const changeUsernameBtn = document.getElementById('changeUsernameBtn');
   const commentsSection = document.getElementById('comments-section');
   const authSection = document.getElementById('auth-section');
   const commentsList = document.getElementById('commentsList');
@@ -86,7 +83,7 @@ const firebaseConfig = {
   function showUsernameSetup() {
     authSection.style.display = 'block';
     commentsSection.style.display = 'none';
-    statusMsg.textContent = "Please set your unique username.";
+    statusMsg.textContent = "Please set your username.";
   }
 
   function showComments() {
@@ -96,14 +93,14 @@ const firebaseConfig = {
     loadComments();
   }
 
-  // Save username with uniqueness check
+  // Save username with Firebase check
   saveUsernameBtn.onclick = async () => {
     const newUsername = usernameInput.value.trim();
     if (!newUsername) {
-      alert("Please enter a username");
+      alert("Enter a username");
       return;
     }
-    // Check if username is taken
+    // Check if username is already taken
     const usernameRef = ref(db, `usernames/${newUsername}`);
     const snapshot = await get(usernameRef);
     if (snapshot.exists()) {
@@ -116,13 +113,6 @@ const firebaseConfig = {
     username = newUsername;
     localStorage.setItem('username', username);
     showComments();
-  };
-
-  // Change username
-  changeUsernameBtn.onclick = () => {
-    // Show the input for new username
-    showUsernameSetup();
-    document.getElementById('statusMsg').textContent = "Enter a new username.";
   };
 
   // Load comments
